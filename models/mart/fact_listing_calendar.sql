@@ -25,6 +25,11 @@ select
     l.first_review,
     l.last_review,
     l.review_scores_rating
-from {{ ref('int_amenities_date_wise') }} as base
+ /*
+ Note: left join preserves calendar rows for listing 276450 which exists
+ in calendar but has no corresponding listing record. Host details will
+ be null for this listing but revenue data is preserved.
+*/
+from {{ ref('int_amenities_date_wise') }} as base  
 left join {{ ref('stg_listings') }} l
     on base.listing_id = l.listing_id

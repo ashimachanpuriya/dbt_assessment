@@ -1,0 +1,77 @@
+version: 2
+
+models:
+  - name: fact_listing_calendar
+    description: "Fact table at listing/date grain combining calendar, listing details, and point-in-time amenities. Used for revenue, occupancy, and amenity analysis."
+    columns:
+      - name: listing_id
+        description: "Unique ID for the listing"
+        tests:
+          - not_null
+      - name: date
+        description: "Date of availability this row describes"
+        tests:
+          - not_null
+      - name: is_available
+        description: "True if this property is available on this date"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [true, false]
+      - name: reservation_id
+        description: "Unique ID for this date's reservation. Null if no reservation."
+      - name: is_reserved
+        description: "True if listing has an active reservation on this date. Derived from reservation_id is not null."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [true, false]
+      - name: price
+        description: "USD price to rent this property on this date"
+        tests:
+          - not_null
+      - name: minimum_nights
+        description: "Minimum number of nights that must be booked consecutively"
+        tests:
+          - not_null
+      - name: maximum_nights
+        description: "Maximum number of nights that may be booked consecutively"
+        tests:
+          - not_null
+      - name: amenities
+        description: "Array of amenities available as of this date. Point-in-time value derived from amenities changelog."
+      - name: listing_name
+        description: "Display name of the listing"
+      - name: host_id
+        description: "Unique ID for the host who owns this property"
+        tests:
+          - not_null:
+              severity: warn  # warns but doesn't fail the pipeline
+      - name: host_name
+        description: "Display name of the host"
+      - name: host_since
+        description: "Date the host signed up"
+      - name: host_location
+        description: "Where the host is based"
+      - name: neighborhood
+        description: "Neighborhood where the listing is located"
+      - name: property_type
+        description: "Description of the type of property"
+      - name: room_type
+        description: "Description of the type of room"
+      - name: accommodates
+        description: "Number of guests this listing can accommodate"
+      - name: bathrooms_text
+        description: "Number and types of bathrooms available"
+      - name: bedrooms
+        description: "Number of bedrooms available for use"
+      - name: beds
+        description: "Number of beds available for use"
+      - name: number_of_reviews
+        description: "Total number of reviews this listing has ever received"
+      - name: first_review
+        description: "Date of the first review this listing received"
+      - name: last_review
+        description: "Date of the most recent review this listing received"
+      - name: review_scores_rating
+        description: "Average review score of this listing"
