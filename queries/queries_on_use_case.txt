@@ -1,0 +1,122 @@
+************************************************************case 1***************************************************************
+
+--Find the total revenue and percentage of revenue by month segmented by whether or not air conditioning exists on the listing
+
+with revenue_data as (
+select
+    year(date) as year,
+    month(date) as month,
+    case 
+        when array_contains('Air conditioning'::variant, amenities)  
+        then 'AC'
+        else 'Non AC'
+    end as segment,
+    price
+from mart.fact_listing_calendar
+where is_reserved = true 
+)
+select
+    year,
+    month,
+    segment,
+    sum(price) as revenue,
+    sum(price) / sum(sum(price)) over (partition by year, month) * 100 as revenue_percentage
+from revenue_data
+group by year, month, segment
+order by year, month, segment;
+
+
+*****************************************************case 2***************************************************************
+
+--Write a query to find the average price increase for each neighborhood from July 12th 2021 to July 11th 2022.  
+--tip: For example, the Back Bay neighborhood only has one listing, so the difference of $44 is the average for the whole neighborhood based solely on listing 10813. 
+
+with initial_price as
+(
+select 
+    listing_id,
+    neighborhood,
+    price as initial_price
+from mart.fact_listing_calendar 
+where date='2021-07-12'),
+final_price as
+(
+select 
+    listing_id,
+    neighborhood,
+    price as final_price
+from mart.fact_listing_calendar 
+where date='2022-07-11'
+)
+select 
+    initial_price.neighborhood,
+    avg(final_price.final_price-initial_price.initial_price)
+FROM initial_price
+join final_price
+on initial_price.listing_id=final_price.listing_id
+group by initial_price.neighborhood; 
+
+
+********************************************************case 3***************************************************************
+--Write a query to determine the longest possible stay duration for rental listings that include both a lockbox and first aid kit in their amenities, considering both listing availability windows and maximum stay limits set by property owners. 
+--Tip: For example, listing 1303261 has both a lockbox and a first aid kit. The longest possible stay would be 159 days. 
+
+with filtered_set as 
+(
+select 
+    listing_id,
+    maximum_nights,
+    amenities,
+    is_reserved,
+    date,
+  rental.mart.fact_listing_calendar
+where (
+array_contains('Lockbox'::variant,amenities) 
+and
+array_contains('First aid kit'::variant,amenities))
+),
+lag_cal as (
+select
+    listing_id,
+    is_reserved,
+    date,
+    maximum_nights,
+    lag(is_reserved) over(partition by listing_id order by date) as previous_reserved_status
+    from filtered_set
+),
+hash_cal as (
+select
+    listing_id, 
+    is_reserved,
+    date,
+    maximum_nights,
+    previous_reserved_status, 
+    case when is_reserved <> previous_reserved_status
+    then 1 else 0
+    end as change
+from lag_cal
+) ,
+grup as (
+select
+    listing_id,
+    is_reserved,
+    date,
+    maximum_nights,
+    previous_reserved_status, 
+    change, 
+    sum(change) over (partition by listing_id order by date ) as grp_id
+from hash_cal
+),
+ranked as (
+select 
+    *  , 
+    dense_rank() over (partition by listing_id, grp_id order by date) as rank_grp
+from grup
+)
+select 
+    listing_id , 
+    max(rank_grp) as "longest possible stay"
+from ranked 
+group by listing_id
+order by listing_id ;
+ 
